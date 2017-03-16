@@ -1,0 +1,33 @@
+{
+    "name": "dealnews-api-client",
+    "type": "library",
+    "description": "A php client for accessing the DealNews api",
+    "keywords": ["dealnews"],
+    "homepage": "https://github.com/dealnews/api-php-client",
+    "license": "BSD",
+    "authors": [
+        {
+            "name": "Jeremy Earle",
+            "email": "jearle@dealnews.com",
+            "homepage": "http://dealnews.com/",
+            "role": "Developer"
+        }
+    ],
+    "require-dev": {
+        "phpunit/phpunit": "4.6.*",
+        "guzzlehttp/guzzle": "~6.0"
+    },
+    "require": {
+        "php": ">=5.5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "DealNews\\API\\Client\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "DealNews\\API\\Client\\Tests\\": "tests/"
+        }
+    }
+}
