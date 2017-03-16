@@ -1,0 +1,9 @@
+# Temporary files
+.DS_Store
+.idea
+*~
+*.sw[aop]
+
+# Deployment dependencies
+vendor
+composer.lock
