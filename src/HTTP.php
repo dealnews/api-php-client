@@ -54,6 +54,22 @@ class HTTP {
     public $default_format = "json";
 
     /**
+     * Describes the SSL certificate verification behavior of a request.
+     *
+     *      - Set to true to enable SSL certificate verification and use the default CA bundle
+     *        provided by operating system.
+     *
+     *      - Set to false to disable certificate verification (this is insecure!).
+     *
+     *      - Set to a string to provide the path to a CA bundle to enable verification using
+     *        a custom certificate.
+     *
+     * @see http://docs.guzzlephp.org/en/latest/request-options.html#verify
+     * @var bool|string
+     */
+    public $verify_ssl = true;
+
+    /**
      * @param   string  $public_key     A key provided by DealNews for access to public endpoints
      * @param   string  $secret_key     A key provided by DealNews for access to private endpoints
      * @param   string  $host           A protocol and host address to access the DealNews API
@@ -115,6 +131,10 @@ class HTTP {
         $options = [
             'headers' => $this->buildRequestHeaders($format, $path, "GET"),
         ];
+
+        if ($this->verify_ssl !== true) {
+            $options['verify'] = $this->verify_ssl;
+        }
 
 
         $data_option_key = "query";
