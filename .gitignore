@@ -7,3 +7,4 @@
 # Deployment dependencies
 vendor
 composer.lock
+phpunit.xml
