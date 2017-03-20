@@ -57,22 +57,29 @@ class HTTP {
      * @param   string  $public_key     A key provided by DealNews for access to public endpoints
      * @param   string  $secret_key     A key provided by DealNews for access to private endpoints
      * @param   string  $host           A protocol and host address to access the DealNews API
-     * @param   object  $client         For testing purposes, only
+     * @param   object  $auth           For testing purposes, only (Mock Auth class)
+     * @param   object  $handler        For testing purposes, only (Guzzle client handler)
      */
-    public function __construct($public_key, $secret_key="", $host="https://api.dealnews.com", $client=null) {
-        $this->auth = new Auth($public_key, $secret_key);
-
-        if (empty($client)) {
-            $this->client = new \GuzzleHttp\Client([
-                'base_uri' => $host,
-                'timeout' => 10,
-                'headers' => [
-                    'User-Agent' => 'DealNewsPHPAPIClient/0.1',
-                ]
-            ]);
+    public function __construct($public_key, $secret_key="", $host="https://api.dealnews.com", $auth = null, $handler=null) {
+        if (empty($auth)) {
+            $this->auth = new Auth($public_key, $secret_key);
         } else {
-            $this->client = $client;
+            $this->auth = $auth;
         }
+
+        $guzzle_config = [
+            'base_uri' => $host,
+            'timeout' => 10,
+            'headers' => [
+                'User-Agent' => 'DealNewsPHPAPIClient/0.1',
+            ]
+        ];
+
+        if (!empty($handler)) {
+            $guzzle_config['handler'] = $handler;
+        }
+
+        $this->client = new \GuzzleHttp\Client($guzzle_config);
     }
 
     /**
