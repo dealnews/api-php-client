@@ -83,7 +83,7 @@ class HTTPTest extends \PHPUnit_Framework_TestCase {
         $handler = $this->getGuzzleHandler($container, $responses);
 
         $http = new HTTP($public_key, $secret_key, "https://api.dealnews.com", $this->mockAuth($public_key, $secret_key), $handler);
-        $client_response = $http->get("/features", ['start' => 30, 'limit' => 10]);
+        $client_response = $http->get("/features", ['query' => ['start' => 30, 'limit' => 10]]);
 
         // check the history
         foreach ($container as $history) {
@@ -144,7 +144,7 @@ class HTTPTest extends \PHPUnit_Framework_TestCase {
         $handler = $this->getGuzzleHandler($container, $responses);
 
         $http = new HTTP($public_key, $secret_key, "https://api.dealnews.com", $this->mockAuth($public_key, $secret_key), $handler);
-        $client_response = $http->get("/features", [], "xml");
+        $client_response = $http->get("/features", ['format' => "xml"]);
 
         // check the history
         foreach ($container as $history) {
@@ -257,7 +257,7 @@ class HTTPTest extends \PHPUnit_Framework_TestCase {
         $handler = $this->getGuzzleHandler($container, $responses);
 
         $http = new HTTP($public_key, $secret_key, "https://api.dealnews.com", $this->mockAuth($public_key, $secret_key), $handler);
-        $client_response = $http->post("/login", ['username' => "foo", 'password' => "bar"]);
+        $client_response = $http->post("/login", ['form_params' => ['username' => "foo", 'password' => "bar"]]);
 
         // check the history
         foreach ($container as $history) {
@@ -289,13 +289,93 @@ class HTTPTest extends \PHPUnit_Framework_TestCase {
         $handler = $this->getGuzzleHandler($container, $responses);
 
         $http = new HTTP($public_key, $secret_key, "https://api.dealnews.com", $this->mockAuth($public_key, $secret_key), $handler);
-        $client_response = $http->post("/features", [], "xml");
+        $client_response = $http->post("/features", ['format' => "xml"]);
 
         // check the history
         foreach ($container as $history) {
             $this->assertEquals(["text/xml,application/xml"], $history['request']->getHeader("Accept"), "HTTP::post method failed to use the proper accept header");
         }
     }
+
+
+    public function testCustomHeader () {
+        $public_key = "foo";
+        $secret_key = "";
+
+        $response_headers = [
+            'Content-Type' => ["application/json", "charset=utf-8"],
+        ];
+
+        $response_body = "{'foo': 'bar'}";
+
+        $container = [];
+        $responses = [
+            new Response(200, $response_headers, $response_body),
+        ];
+
+        $handler = $this->getGuzzleHandler($container, $responses);
+
+        $http = new HTTP($public_key, $secret_key, "https://api.dealnews.com", $this->mockAuth($public_key, $secret_key), $handler);
+        $client_response = $http->post("/login", ['headers' => ['x-dn-foo' => 'bar']]);
+
+        // check the history
+        foreach ($container as $history) {
+            $this->assertEquals(["application/json"], $history['request']->getHeader("Accept"), "HTTP::post method failed to use the proper accept header");
+
+            $this->assertEquals(["bar"], $history['request']->getHeader("x-dn-foo"), "HTTP::post method failed to pass the custom header");
+        }
+    }
+
+
+    /**
+     * @expectedException \DealNews\API\Client\Exception\InvalidOption
+     */
+    public function testInvalidOption () {
+        $public_key = "foo";
+        $secret_key = "";
+
+        $response_headers = [
+            'Content-Type' => ["application/json", "charset=utf-8"],
+        ];
+
+        $response_body = "{'foo': 'bar'}";
+
+        $container = [];
+        $responses = [
+            new Response(200, $response_headers, $response_body),
+        ];
+
+        $handler = $this->getGuzzleHandler($container, $responses);
+
+        $http = new HTTP($public_key, $secret_key, "https://api.dealnews.com", $this->mockAuth($public_key, $secret_key), $handler);
+        $client_response = $http->post("/features", ['formatttt' => "xml"]);
+    }
+
+
+    /**
+     * @expectedException \DealNews\API\Client\Exception\InvalidMethodOption
+     */
+    public function testInvalidMethodOption () {
+        $public_key = "foo";
+        $secret_key = "";
+
+        $response_headers = [
+            'Content-Type' => ["application/json", "charset=utf-8"],
+        ];
+
+        $response_body = "{'foo': 'bar'}";
+
+        $container = [];
+        $responses = [
+            new Response(200, $response_headers, $response_body),
+        ];
+
+        $handler = $this->getGuzzleHandler($container, $responses);
+
+        $http = new HTTP($public_key, $secret_key, "https://api.dealnews.com", $this->mockAuth($public_key, $secret_key), $handler);
+        $client_response = $http->post("/features", ['query' => ['foo' => 1]]);
+    }
+
 
 
     protected function mockAuth ($public, $secret="") {

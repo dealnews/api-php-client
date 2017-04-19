@@ -1,5 +1,5 @@
 {
-    "name": "dealnews-api-client",
+    "name": "dealnews/api-client",
     "type": "library",
     "description": "A php client for accessing the DealNews api",
     "keywords": ["dealnews"],
