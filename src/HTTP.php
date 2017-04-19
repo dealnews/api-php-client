@@ -40,6 +40,19 @@ class HTTP {
     ];
 
     /**
+     * List of request options that we accept and what request method
+     * they are supported in.
+     *
+     * @var array
+     */
+    protected $valid_request_options = [
+        'form_params' => ['POST'],
+        'format' => ['GET', 'POST'],
+        'headers' => ['GET', 'POST'],
+        'query' => ['GET'],
+    ];
+
+    /**
      * When set to true, we will request the api with the "no-cache" header
      *
      * @var bool
@@ -70,11 +83,11 @@ class HTTP {
     public $verify_ssl = true;
 
     /**
-     * @param   string  $public_key     A key provided by DealNews for access to public endpoints
-     * @param   string  $secret_key     A key provided by DealNews for access to private endpoints
-     * @param   string  $host           A protocol and host address to access the DealNews API
-     * @param   object  $auth           For testing purposes, only (Mock Auth class)
-     * @param   object  $handler        For testing purposes, only (Guzzle client handler)
+     * @param   string                          $public_key     A key provided by DealNews for access to public endpoints
+     * @param   string                          $secret_key     A key provided by DealNews for access to private endpoints
+     * @param   string                          $host           A protocol and host address to access the DealNews API
+     * @param   Auth                            $auth           For testing purposes, only
+     * @param   \GuzzleHttp\Handler\MockHandler $handler        For testing purposes, only
      */
     public function __construct($public_key, $secret_key="", $host="https://api.dealnews.com", $auth = null, $handler=null) {
         if (empty($auth)) {
@@ -101,47 +114,66 @@ class HTTP {
     /**
      * Performs a GET request against an API endpoint
      *
-     * @param   string  $path           The url path (not including protocol or not. Example: "/features")
-     * @param   array   $query_params   Optional set of query string params (Example: ['start' => 30])
-     * @param   string  $format         Optional format of return data (defaults to $default_format)
+     * @param   string  $path               The url path (not including protocol or not. Example: "/features")
+     * @param   array   $request_options    Options for the request such as headers, query string (query), etc..
      *
-     * @return  array                   An array containing the HTTP response status code, response headers, and the response body
+     * @return  array                       An array containing the HTTP response status code, response headers, and the response body
+     *
+     * @throws  Exception\InvalidOption
+     * @throws  Exception\InvalidMethodOption
      */
-    public function get ($path, $query_params=[], $format=null) {
-        return $this->makeRequest("GET", $path, $query_params, $format);
+    public function get ($path, $request_options=[]) {
+        return $this->makeRequest("GET", $path, $request_options);
     }
 
 
     /**
      * Performs a POST request against an API endpoint
      *
-     * @param   string  $path           The url path (not including protocol or not. Example: "/login")
-     * @param   array   $post_data      Optional set of form post data to send (Example: ['username' => 'johndoe'])
-     * @param   string  $format         Optional format of return data (defaults to $default_format)
+     * @param   string  $path               The url path (not including protocol or not. Example: "/login")
+     * @param   array   $request_options    Options for the request such as headers, query string (query), etc..
      *
-     * @return  array                   An array containing the HTTP response status code, response headers, and the response body
+     * @return  array                       An array containing the HTTP response status code, response headers, and the response body
+     *
+     * @throws  Exception\InvalidOption
+     * @throws  Exception\InvalidMethodOption
      */
-    public function post ($path, $post_data=[], $format=null) {
-        return $this->makeRequest("POST", $path, $post_data, $format);
+    public function post ($path, $request_options=[]) {
+        return $this->makeRequest("POST", $path, $request_options);
     }
 
 
+    /**
+     * Makes a request (GET or POST) to an api endpoint
+     *
+     * @param   string  $method             The request method (GET or POST)
+     * @param   string  $path               The relative path to the endpoint
+     * @param   array   $request_options    A list of request options
+     *
+     * @return  array                       An array containing the HTTP response status code, response headers, and the response body
+     *
+     * @throws Exception\InvalidOption
+     * @throws Exception\InvalidMethodOption
+     */
+    protected function makeRequest ($method, $path, $request_options=[]) {
+        $this->validateOptions($method, $request_options);
 
-    protected function makeRequest ($method, $path, $data=[], $format=null) {
         $options = [
-            'headers' => $this->buildRequestHeaders($format, $path, "GET"),
+            'headers' => $this->buildRequestHeaders($request_options, $path, "GET"),
         ];
+
+        if (!empty($request_options['headers'])) {
+            $options['headers'] = array_merge($options['headers'], $request_options['headers']);
+            unset($request_options['headers']);
+        }
 
         if ($this->verify_ssl !== true) {
             $options['verify'] = $this->verify_ssl;
         }
 
-
-        $data_option_key = "query";
-        if ($method == "POST") {
-            $data_option_key = "form_params";
+        if (!empty($request_options)) {
+            $options = array_merge($options, $request_options);
         }
-        $options[$data_option_key] = $data;
 
         $response = $this->client->request($method, $path, $options);
 
@@ -153,13 +185,44 @@ class HTTP {
     }
 
 
-    protected function buildRequestHeaders ($format, $path, $method) {
+    /**
+     * Determines if the provided array contains valid request options
+     *
+     * @param   string  $method             The request method (GET or POST)
+     * @param   array   $options            A list of request options to be verified
+     *
+     * @throws Exception\InvalidOption
+     * @throws Exception\InvalidMethodOption
+     */
+    protected function validateOptions ($method, $options) {
+        foreach ($options as $option => $value) {
+            if (!empty($this->valid_request_options[$option])) {
+                if (!in_array($method, $this->valid_request_options[$option])) {
+                    throw new Exception\InvalidMethodOption("Invalid option $option for method " . $method);
+                }
+            } else {
+                throw new Exception\InvalidOption("Invalid option $option");
+            }
+        }
+    }
+
+
+    /**
+     * Builds the minimum headers necessary to make an API request
+     *
+     * @param   array   $options    Request options
+     * @param   string  $path       A relative path to the API endpoint
+     * @param   string  $method     The request method (GET or POST)
+     *
+     * @return  array               A list of header names and values needed for a request
+     */
+    protected function buildRequestHeaders ($options, $path, $method) {
         $headers = [
             'Accept-Encoding' => 'gzip,deflate',
         ];
 
-        if (!empty($format) && !empty($this->accepted_formats[strtolower($format)])) {
-            $headers['Accept'] = $this->accepted_formats[strtolower($format)];
+        if (!empty($options['format']) && !empty($this->accepted_formats[strtolower($options['format'])])) {
+            $headers['Accept'] = $this->accepted_formats[strtolower($options['format'])];
         } elseif (!empty($this->accepted_formats[strtolower($this->default_format)])) {
             $headers['Accept'] = $this->accepted_formats[strtolower($this->default_format)];
         }
