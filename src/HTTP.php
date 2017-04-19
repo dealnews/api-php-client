@@ -100,7 +100,7 @@ class HTTP {
             'base_uri' => $host,
             'timeout' => 10,
             'headers' => [
-                'User-Agent' => 'DealNewsPHPAPIClient/0.1',
+                'User-Agent' => 'DealNewsPHPAPIClient/1.0.0',
             ]
         ];
 
