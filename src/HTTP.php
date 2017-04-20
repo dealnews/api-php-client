@@ -100,7 +100,7 @@ class HTTP {
             'base_uri' => $host,
             'timeout' => 10,
             'headers' => [
-                'User-Agent' => 'DealNewsPHPAPIClient/1.0.0',
+                'User-Agent' => 'DealNewsPHPAPIClient/1.0.1',
             ]
         ];
 
@@ -159,7 +159,7 @@ class HTTP {
         $this->validateOptions($method, $request_options);
 
         $options = [
-            'headers' => $this->buildRequestHeaders($request_options, $path, "GET"),
+            'headers' => $this->buildRequestHeaders($request_options, $path, $method),
         ];
 
         if (!empty($request_options['headers'])) {
