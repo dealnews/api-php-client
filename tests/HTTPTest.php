@@ -327,6 +327,39 @@ class HTTPTest extends \PHPUnit_Framework_TestCase {
     }
 
 
+    public function testProperAuthHeader () {
+        $public_key = "foo";
+        $secret_key = "bar";
+
+        $response_headers = [
+            'Content-Type' => ["application/json", "charset=utf-8"],
+        ];
+
+        $response_body = "{'foo': 'bar'}";
+
+        $container = [];
+        $responses = [
+            new Response(200, $response_headers, $response_body),
+            new Response(200, $response_headers, $response_body),
+        ];
+
+        $handler = $this->getGuzzleHandler($container, $responses);
+
+        $http = new HTTP($public_key, $secret_key, "https://api.dealnews.com", $this->mockAuth($public_key, $secret_key), $handler);
+        $http->get("/features");
+        $http->post("/features");
+
+
+        // check the history
+        $count = 0;
+        foreach ($container as $history) {
+            $x_dn_date = current($history['request']->getHeader("x-dn-date"));
+            $this->assertEquals([$this->mockAuthCallback ("/features", ($count == 0 ? "GET" : "POST"), $x_dn_date)], $history['request']->getHeader("Authorization"), "HTTP::" . ($count == 0 ? "get" : "post") . " method failed to use the proper authorization header");
+            $count++;
+        }
+    }
+
+
     /**
      * @expectedException \DealNews\API\Client\Exception\InvalidOption
      */
@@ -381,12 +414,17 @@ class HTTPTest extends \PHPUnit_Framework_TestCase {
     protected function mockAuth ($public, $secret="") {
         $mock = $this->getMockBuilder('\DealNews\API\Client\Auth')->setConstructorArgs([$public, $secret])->getMock();
         if (!empty($secret)) {
-            $mock->method("getAuth")->willReturn("DN " . $public . ":" . $secret);
+            $mock->method("getAuth")->will($this->returnCallback([$this, "mockAuthCallback"]));
         } else {
             $mock->method("getAuth")->willReturn("DN " . $public);
         }
 
         return $mock;
+    }
+
+
+    public function mockAuthCallback ($path, $method, $x_dn_date) {
+        return $path . "-" . $method . "-" . $x_dn_date;
     }
 
 
